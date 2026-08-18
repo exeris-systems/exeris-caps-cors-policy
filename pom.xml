@@ -143,17 +143,4 @@
         </plugins>
     </build>
 
-    <repositories>
-        <!-- Kernel and SDK artifacts are not on Maven Central yet (deliberate — the SDK
-             does not move before the kernel does). CI installs both from source; this
-             declaration is what a local build resolves against once you have run
-             `mvn install` in the sibling checkouts. -->
-        <repository>
-            <id>github-exeris-kernel</id>
-            <name>Exeris Kernel — GitHub Packages</name>
-            <url>https://maven.pkg.github.com/exeris-systems/exeris-kernel</url>
-            <releases><enabled>true</enabled></releases>
-            <snapshots><enabled>true</enabled></snapshots>
-        </repository>
-    </repositories>
 </project>
