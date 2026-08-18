@@ -39,13 +39,16 @@ jobs:
           ref: v0.10.0
           path: exeris-sdk
 
-      # Tracks main because the codegen plugin has no release carrying what this cap
-      # needs; 0.7.0-SNAPSHOT is main. Pin this to a tag as soon as one exists.
-      - name: Checkout exeris-tooling (0.7.0-SNAPSHOT — no release yet)
+      # Pinned to the release tag, as the SDK already is. Tracking main was a stopgap while
+      # tooling had no release carrying what a cap needs; v0.7.0 cut that on 2026-08-18 and
+      # main became 0.8.0-SNAPSHOT the same moment — so a main-tracking build stopped
+      # producing the version this POM asks for. An immutable ref also stops an unrelated
+      # upstream commit from turning this build red.
+      - name: Checkout exeris-tooling (v0.7.0 — matches exeris.tooling.version in the POM)
         uses: actions/checkout@v4
         with:
           repository: exeris-systems/exeris-tooling
-          ref: main
+          ref: v0.7.0
           path: exeris-tooling
 
       - name: Set up JDK ${{ matrix.java }}

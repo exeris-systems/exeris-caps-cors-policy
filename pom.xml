@@ -42,10 +42,12 @@
         <maven.compiler.release>25</maven.compiler.release>
 
         <exeris.sdk.version>0.10.0</exeris.sdk.version>
-        <!-- Unreleased. Until the codegen plugin cuts a release, a build has to resolve
-             it from a local `mvn install` of exeris-tooling (which CI does from source).
-             This is friction the cap layer inherits, not a design choice. -->
-        <exeris.tooling.version>0.7.0-SNAPSHOT</exeris.tooling.version>
+        <!-- Released 2026-08-18 (tooling v0.7.0). Pinned to the release rather than a
+             SNAPSHOT: tooling's main moved to 0.8.0-SNAPSHOT the moment the tag was cut, so
+             a main-tracking build stopped producing the version this property asks for.
+             Still built from source in CI — the published artefacts live on GitHub Packages
+             and resolving them would reintroduce the credential this repo avoids by design. -->
+        <exeris.tooling.version>0.7.0</exeris.tooling.version>
 
         <junit.version>5.11.4</junit.version>
         <assertj.version>3.27.3</assertj.version>
