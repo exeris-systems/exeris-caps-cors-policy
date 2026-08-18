@@ -1,0 +1,144 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: mvn verify (JDK ${{ matrix.java }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 25 is the release-bearing row — the LTS this cap compiles at and the floor
+        # its jar must be loadable from. 26 is forward-compatibility: it catches source
+        # that stops compiling on a newer JDK. Both rows produce class-file major 69,
+        # because `release` fixes the stamp regardless of the building JDK.
+        java: ['25', '26']
+
+    steps:
+      - name: Checkout exeris-caps-cors-policy
+        uses: actions/checkout@v4
+        with:
+          path: exeris-caps-cors-policy
+
+      # eu.exeris artifacts are not on Maven Central yet (deliberate — the SDK does not
+      # move before the kernel does), so both upstreams are built from source. The SDK
+      # is pinned to an immutable release tag rather than a moving branch: a moving ref
+      # lets an unrelated upstream commit turn this build red.
+      - name: Checkout exeris-sdk (v0.10.0 — matches exeris.sdk.version in the POM)
+        uses: actions/checkout@v4
+        with:
+          repository: exeris-systems/exeris-sdk
+          ref: v0.10.0
+          path: exeris-sdk
+
+      # Pinned to the release tag, as the SDK already is. Tracking main was a stopgap while
+      # tooling had no release carrying what a cap needs; v0.7.0 cut that on 2026-08-18 and
+      # main became 0.8.0-SNAPSHOT the same moment — so a main-tracking build stopped
+      # producing the version this POM asks for. An immutable ref also stops an unrelated
+      # upstream commit from turning this build red.
+      - name: Checkout exeris-tooling (v0.7.0 — matches exeris.tooling.version in the POM)
+        uses: actions/checkout@v4
+        with:
+          repository: exeris-systems/exeris-tooling
+          ref: v0.7.0
+          path: exeris-tooling
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+          cache: maven
+
+      # japicmp.skip mirrors what the SDK's own CI passes, and it is required from
+      # v0.10.0 on: that release bound a semver-gate japicmp execution to `verify`,
+      # which `install` runs. The gate resolves the previous release jar as its
+      # baseline, and eu.exeris is not on Central, so a runner has nothing to resolve —
+      # and an absent baseline is configured to FAIL. That is the correct posture for
+      # the SDK and simply not this repo's gate to run.
+      - name: Install exeris-sdk to the local repo
+        working-directory: exeris-sdk
+        run: mvn -B -ntp -DskipTests -Djapicmp.skip=true install
+
+      # Select what a consumer needs, and name the BOM explicitly.
+      #
+      # The problem: tooling's exeris-e2e-tests declares exeris-kernel-{spi,core,community,
+      # community-testkit} at test scope, and those live on GitHub Packages behind a
+      # credential this workflow has no reason to hold. Three attempts, each measured:
+      #
+      #   -DskipTests / -Dmaven.test.skip=true   Maven collects a module's dependency graph
+      #   whether or not its tests compile, so the kernel is still demanded and the build
+      #   still 401s. The module must leave the reactor, not merely go quiet.
+      #
+      #   -pl '!exeris-e2e-tests'   moves the failure one hop, to -rf :exeris-coverage-aggregate,
+      #   which declares exeris-e2e-tests at provided scope to find its jacoco.exec. A blacklist
+      #   also rots silently: it breaks again whenever tooling gains a module.
+      #
+      #   -pl exeris-processor,exeris-codegen-maven-plugin -am   is forward-safe but omits
+      #   exeris-tooling-bom. The BOM is imported by exeris-tooling-parent inside
+      #   dependencyManagement, and -am traverses parent and dependency edges but not BOM
+      #   imports — so it installs a plugin whose POM cannot be read back. That resolves on a
+      #   developer machine with a warm ~/.m2 and 401s on a clean one, which is what CI always
+      #   has. exeris-caps-cors-policy build 32106825475 died exactly there:
+      #   "exeris-tooling-bom:pom:0.7.0-SNAPSHOT (absent) ... 401".
+      #
+      # Naming the BOM alongside the two entry points keeps the allowlist's forward-safety —
+      # a new tooling module is invisible here unless something named depends on it — and
+      # closes the gap. exeris-codegen-core, the only tooling artifact a consumer's BOM
+      # manages, arrives transitively via exeris-codegen-maven-plugin -> exeris-codegen-java.
+      #
+      # Verified from an empty -Dmaven.repo.local, not a warm one: 7 modules build, the BOM
+      # lands, and a downstream consumer resolves the plugin. Tooling's own CI is what runs
+      # tooling's tests and publishes its coverage.
+      - name: Install the codegen chain to the local repo (kernel-free reactor)
+        working-directory: exeris-tooling
+        run: mvn -B -ntp -DskipTests install -pl exeris-tooling-bom,exeris-processor,exeris-codegen-maven-plugin -am
+
+      # Two passes, and the first one is not redundant. exeris:generate runs at
+      # generate-sources, but the processor only writes capability metadata during
+      # compile — so on a fresh checkout the first pass has nothing to read. Seeding
+      # with codegen skipped produces the metadata; the second pass consumes it and
+      # emits cap-manifest.json.
+      - name: Seed capability metadata (first pass, codegen skipped)
+        working-directory: exeris-caps-cors-policy
+        run: mvn -B -ntp compile -Dexeris.codegen.skip=true
+
+      - name: mvn verify (second pass — generates, validates, scans the Wall)
+        working-directory: exeris-caps-cors-policy
+        run: mvn -B -ntp verify
+
+      # The manifest is the artefact this whole pipeline exists to produce. Failing
+      # loudly when it is absent or unstamped beats a green build that silently emitted
+      # nothing — "the goal ran" and "the goal produced a valid stamp" are different
+      # claims, and only the second one matters to a SKU.
+      - name: Assert the cap manifest was emitted and stamped
+        working-directory: exeris-caps-cors-policy
+        run: |
+          MANIFEST=$(find . -name cap-manifest.json -print -quit)
+          if [ -z "$MANIFEST" ]; then
+            echo "::error::no cap-manifest.json was emitted — the capability pass did not run"
+            exit 1
+          fi
+          echo "found: $MANIFEST"
+          cat "$MANIFEST"
+          python3 - "$MANIFEST" <<'PY'
+          import json, re, sys
+          m = json.load(open(sys.argv[1]))
+          stamp = m.get("stamp") or {}
+          assert m.get("schemaVersion") == 2, f"unexpected schemaVersion: {m.get('schemaVersion')}"
+          assert stamp.get("validated") is True, "stamp is not validated"
+          assert re.fullmatch(r"sha256:[0-9a-f]{64}", stamp.get("contentBinding") or ""), \
+              f"bad contentBinding: {stamp.get('contentBinding')!r}"
+          names = [mod.get("qualifiedName") for mod in m.get("modules") or []]
+          assert "eu.exeris.caps.corspolicy.CorsPolicyModule" in names, \
+              f"module missing from manifest: {names}"
+          print("manifest OK — validated stamp, sha256 binding, module present")
+          PY
