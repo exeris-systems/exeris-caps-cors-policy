@@ -65,30 +65,39 @@ jobs:
         working-directory: exeris-sdk
         run: mvn -B -ntp -DskipTests -Djapicmp.skip=true install
 
-      # Exclude the kernel-demanding module and the coverage reporter that folds it in.
-      # This is not an optimisation — it is what keeps this build credential-free. tooling's
-      # exeris-e2e-tests declares exeris-kernel-{spi,core,community,community-testkit} at
-      # test scope; those live on GitHub Packages and would demand a token.
+      # Select what a consumer needs, and name the BOM explicitly.
       #
-      # Three traps, all hit for real before this line settled:
+      # The problem: tooling's exeris-e2e-tests declares exeris-kernel-{spi,core,community,
+      # community-testkit} at test scope, and those live on GitHub Packages behind a
+      # credential this workflow has no reason to hold. Three attempts, each measured:
       #
-      # -DskipTests is NOT sufficient. Maven collects a module's dependency graph regardless
-      # of whether its tests compile, so the kernel is still demanded and the build still
-      # 401s. The module has to leave the reactor, not merely go quiet.
+      #   -DskipTests / -Dmaven.test.skip=true   Maven collects a module's dependency graph
+      #   whether or not its tests compile, so the kernel is still demanded and the build
+      #   still 401s. The module must leave the reactor, not merely go quiet.
       #
-      # An allowlist (-pl exeris-processor,exeris-codegen-maven-plugin -am) is NOT sufficient
-      # either. It omits exeris-tooling-bom, which exeris-tooling-parent imports in
-      # dependencyManagement — and -am does not traverse BOM imports. The plugin then fails
-      # to resolve against a clean repo, which is what CI has and a dev machine usually is not.
+      #   -pl '!exeris-e2e-tests'   moves the failure one hop, to -rf :exeris-coverage-aggregate,
+      #   which declares exeris-e2e-tests at provided scope to find its jacoco.exec. A blacklist
+      #   also rots silently: it breaks again whenever tooling gains a module.
       #
-      # exeris-coverage-aggregate has to go too: it declares exeris-e2e-tests at provided
-      # scope to locate its jacoco.exec, so dropping e2e-tests alone leaves it unresolvable.
-      # It is a reporting module (packaging: pom) that produces nothing a consumer consumes.
+      #   -pl exeris-processor,exeris-codegen-maven-plugin -am   is forward-safe but omits
+      #   exeris-tooling-bom. The BOM is imported by exeris-tooling-parent inside
+      #   dependencyManagement, and -am traverses parent and dependency edges but not BOM
+      #   imports — so it installs a plugin whose POM cannot be read back. That resolves on a
+      #   developer machine with a warm ~/.m2 and 401s on a clean one, which is what CI always
+      #   has. exeris-caps-cors-policy build 32106825475 died exactly there:
+      #   "exeris-tooling-bom:pom:0.7.0-SNAPSHOT (absent) ... 401".
       #
-      # Tooling's own CI is what runs tooling's tests and publishes its coverage.
+      # Naming the BOM alongside the two entry points keeps the allowlist's forward-safety —
+      # a new tooling module is invisible here unless something named depends on it — and
+      # closes the gap. exeris-codegen-core, the only tooling artifact a consumer's BOM
+      # manages, arrives transitively via exeris-codegen-maven-plugin -> exeris-codegen-java.
+      #
+      # Verified from an empty -Dmaven.repo.local, not a warm one: 7 modules build, the BOM
+      # lands, and a downstream consumer resolves the plugin. Tooling's own CI is what runs
+      # tooling's tests and publishes its coverage.
       - name: Install the codegen chain to the local repo (kernel-free reactor)
         working-directory: exeris-tooling
-        run: mvn -B -ntp -DskipTests install -pl '!exeris-e2e-tests,!exeris-coverage-aggregate'
+        run: mvn -B -ntp -DskipTests install -pl exeris-tooling-bom,exeris-processor,exeris-codegen-maven-plugin -am
 
       # Two passes, and the first one is not redundant. exeris:generate runs at
       # generate-sources, but the processor only writes capability metadata during
