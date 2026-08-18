@@ -3,43 +3,147 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+
+# One review per PR at a time. `synchronize` fires on every push, so without this a
+# quick follow-up push leaves two full reviews running against different commits —
+# the older one finishes and posts a verdict on code that no longer exists.
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-
+    # Drafts and dependency bumps do not need a full review pass. Draft PRs still
+    # fire `opened`, and a bot PR would otherwise be reviewed once per push.
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
+    # Permissions:
+    #   - `pull-requests: write` is required so Claude can actually post the review
+    #     (without it the action runs green and produces no visible output).
+    #   - `contents: read` is enough — the review job does not push commits.
+    #   - `id-token: write` is required for the action's OIDC-based app-token exchange.
+    #
+    # Pattern mirrors `exeris-tooling/.github/workflows/claude-code-review.yml`, the
+    # canonical Exeris setup. The generated variant this file replaces used
+    # `plugin_marketplaces` + `plugins: code-review@claude-code-plugins`, which runs
+    # cleanly but never posts: the plugin path does not enable the comment-posting MCP
+    # tools by default, and it ran with `pull-requests: read`. The inline-prompt path
+    # with an explicit `--allowedTools` allow-list does. See `claude_args` below.
     permissions:
       contents: read
-      pull-requests: read
-      issues: read
+      pull-requests: write
       id-token: write
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
 
       - name: Run Claude Code Review
         id: claude-review
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@9c41ed18ca8b2b2a17eaef4723d5092ccdebc814 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
-          plugins: 'code-review@claude-code-plugins'
-          prompt: '/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
-          claude_args: '--allowedTools "mcp__github_inline_comment__create_inline_comment"'
-          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://code.claude.com/docs/en/cli-reference for available options
 
+          track_progress: true
+
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this PR. The repo is `exeris-caps-cors-policy` — a single-module
+            Java 25 (LTS) / Maven **capability** in the Exeris cap tier, Apache-2.0
+            (`community` per ADR-023). It publishes one service, `CorsPolicy`: a pure
+            decision function over origin / method / preflight headers. It owns no
+            transport, binds to no host runtime, and depends on no kernel SPI.
+
+            `README.md` and the comments in `pom.xml` / `.github/workflows/build.yml`
+            document the invariants below and are the authority where this prompt and
+            the repo disagree.
+
+            Focus on:
+
+            1. **Cap-tier Wall (ADR-055).** `..corspolicy.api` is the entire cross-cap
+               surface; `..corspolicy.internal` is private and a sibling cap reaching
+               in must fail the build. Flag any internal type leaking through an `api`
+               signature. The package root `eu.exeris.caps.corspolicy` is load-bearing,
+               not tidiness — `CapTierWall` derives the cap name a build owns from the
+               segment after `eu.exeris.caps.`, and that name is what licenses the
+               build to read its own `internal` packages. A rename or an extra
+               path segment silently revokes that.
+
+            2. **Zero runtime dependencies.** Every Exeris annotation is
+               `@Retention(SOURCE)`, so `exeris-sdk-annotations` stays at `provided`
+               scope and `exeris-processor` stays in `annotationProcessorPaths` — not
+               on the compile classpath. Flag any new `compile`-scope dependency, any
+               kernel / Spring / transport type, and any use of an annotation at
+               runtime (reflection over it can never work).
+
+            3. **Capability declaration discipline.** `CorsPolicyModule` carries the
+               whole contract. A speculative or empty `@Requires` is a false edge in
+               the composition DAG and changes the derived `initOrder` for every SKU
+               including this cap. A `@CapabilityLifecycle` here would be four no-op
+               hooks the boot conductor still loads reflectively — this cap acquires
+               no resource. `@Provides(version = …)` is a semver contract: a
+               behavioural change to `CorsPolicy` without a version bump is a finding.
+
+            4. **The manifest is committed.** `src/main/generated/java/cap-manifest.json`
+               is checked in. Any diff touching the module declaration must carry the
+               regenerated manifest, with `stamp.validated: true`, a
+               `sha256:<64 hex>` `contentBinding`, and `initOrder` matching the
+               declared graph. A declaration change with a stale manifest is a
+               blocker. Note the two-pass build (`compile -Dexeris.codegen.skip=true`,
+               then `verify`) is expected, not a fault to fix.
+
+            5. **CORS correctness — this is a security decision function.** Fail
+               closed: an unmatched origin, method, or requested header denies, and a
+               denial is a normal return value, never an exception. Check the
+               spec-level traps specifically: wildcard origin with credentials must
+               stay rejected at construction; `Vary: Origin` must accompany any
+               origin-dependent response; header matching is case-insensitive under
+               `Locale.ROOT` (the Turkish-I trap); origin matching is exact and
+               case-sensitive; preflight-only headers must not leak onto simple
+               requests; advertised method/header order stays byte-stable. Anything
+               that widens what is allowed needs an explicit justification in the PR.
+
+            6. **JDK baseline.** `maven.compiler.release` stays 25 and no preview flag
+               appears anywhere — a preview-stamped class re-pins this jar to one exact
+               JDK major (kernel ADR-066, SDK ADR-069). CI builds JDK 25 and 26; both
+               rows must stay green.
+
+            7. **Build & CI shape.** The upstream SDK is pinned to an immutable tag
+               matching `exeris.sdk.version`; the tooling reactor is an *allowlist*
+               (`exeris-tooling-bom,exeris-processor,exeris-codegen-maven-plugin -am`)
+               that deliberately keeps the kernel — and therefore a GitHub Packages
+               credential — out of the build. Flag anything that reintroduces the
+               credential requirement, moves the pin to a branch, or drops the manifest
+               assertion step.
+
+            8. **Test contract (ADR-058).** JUnit 5 + AssertJ only. No mocking
+               framework — doubles are written or emitted, never mocked. New behaviour
+               in `DefaultCorsPolicy` belongs in the matching `@Nested` group of
+               `DefaultCorsPolicyTest`, not a parallel test class.
+
+            9. **Licensing.** Apache-2.0 is a deliberate ADR-023 classification: keep
+               `LICENSE`, the POM `<licenses>` block, and the README claim in step.
+
+            10. **Correctness & scope** — bugs, edge cases, broken contracts, merge
+                artifacts (duplicated sections, orphan blocks, references to files the
+                PR deletes). Does the diff match the PR title and description? Anything
+                in scope missing, or out of scope that should be split?
+
+            State "none" where that is the answer; do not pad. Skip cosmetic nits
+            unless they affect the above. Be specific: cite `file:line`, and say what
+            breaks rather than that something "could be improved". Lead with blockers,
+            then in-scope improvements, then non-blocking suggestions. End with a clear
+            verdict (LGTM / Approve with nits / Request changes).
+
+            Post your review as a single PR review (not many separate comments). Use
+            inline comments only when they materially help — `file:line` in the text
+            body is usually clearer.
+
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api:*),Bash(git log:*),Bash(git show:*),Bash(git diff:*),Bash(git status:*),Bash(git branch:*),Bash(git remote:*)"
