@@ -25,6 +25,8 @@ public final class DefaultCorsPolicy implements CorsPolicy {
     private final boolean anyOrigin;
     /** Case-insensitive view of the allowed request headers, for O(log n) lookup. */
     private final Set<String> headersCaseInsensitive;
+    /** Root-locale-uppercased view of the allowed methods, matching what is advertised. */
+    private final Set<String> methodsNormalized;
     private final List<String> advertisedMethods;
     private final List<String> advertisedHeaders;
 
@@ -45,6 +47,14 @@ public final class DefaultCorsPolicy implements CorsPolicy {
         // would churn caches and diffs for no reason.
         this.advertisedMethods = settings.allowedMethods().stream()
                 .map(m -> m.toUpperCase(Locale.ROOT)).sorted().toList();
+
+        // Match against the same normalised form that gets advertised. Comparing an
+        // uppercased request method against the raw configured set lets the two disagree:
+        // settings of ["get"] would advertise GET in Access-Control-Allow-Methods and then
+        // deny it, because "GET" is not in ["get"]. Advertising a method the policy refuses
+        // is worse than either behaviour on its own, and deny is indistinguishable from
+        // "never configured", so the operator gets no signal.
+        this.methodsNormalized = Set.copyOf(this.advertisedMethods);
         this.advertisedHeaders = settings.allowedHeaders().stream().sorted().toList();
     }
 
@@ -90,7 +100,7 @@ public final class DefaultCorsPolicy implements CorsPolicy {
     }
 
     private boolean methodAllowed(String method) {
-        return settings.allowedMethods().contains(method.toUpperCase(Locale.ROOT));
+        return methodsNormalized.contains(method.toUpperCase(Locale.ROOT));
     }
 
     private boolean headersAllowed(List<String> requested) {

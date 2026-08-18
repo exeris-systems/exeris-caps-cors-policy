@@ -84,6 +84,24 @@ class DefaultCorsPolicyTest {
         }
 
         @Test
+        @DisplayName("honours a lower-case configured method, and does not advertise what it denies")
+        void configuredMethodCaseIsNormalised() {
+            // Regression: the advertised list was normalised while the match was not, so
+            // settings of ["get"] advertised GET and then denied it. Advertising a method
+            // the policy refuses is a contradiction the operator cannot see, because a deny
+            // is indistinguishable from "never configured".
+            var policy = new DefaultCorsPolicy(new CorsPolicySettings(
+                    Set.of(APP), Set.of("get"), Set.of(), Duration.ofMinutes(10), false));
+
+            CorsDecision simple = policy.evaluate(CorsRequest.simple(APP, "GET"));
+            assertThat(simple.allowed()).isTrue();
+
+            CorsDecision pre = policy.evaluate(CorsRequest.preflight(APP, "GET", List.of()));
+            assertThat(pre.allowed()).isTrue();
+            assertThat(pre.allowedMethods()).containsExactly("GET");
+        }
+
+        @Test
         @DisplayName("matches requested headers case-insensitively, per RFC 9110")
         void headersAreCaseInsensitive() {
             CorsDecision d = credentialed(APP).evaluate(
