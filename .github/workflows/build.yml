@@ -65,19 +65,30 @@ jobs:
         working-directory: exeris-sdk
         run: mvn -B -ntp -DskipTests -Djapicmp.skip=true install
 
-      # Only the two modules a cap consumes, plus what they need (-am). This is not an
-      # optimisation — it is what keeps this build credential-free. The full tooling
-      # reactor includes exeris-e2e-tests, which declares exeris-kernel-{spi,core,
-      # community,community-testkit} at test scope; those live on GitHub Packages and
-      # would demand a token. Nothing in the processor or the plugin chain references
-      # the kernel at all, so scoping the build to them removes the need entirely.
+      # Exclude the kernel-demanding module and the coverage reporter that folds it in.
+      # This is not an optimisation — it is what keeps this build credential-free. tooling's
+      # exeris-e2e-tests declares exeris-kernel-{spi,core,community,community-testkit} at
+      # test scope; those live on GitHub Packages and would demand a token.
       #
-      # Note -DskipTests would NOT have been enough: Maven collects a module's
-      # dependency graph regardless of whether its tests compile, so the kernel would
-      # still be demanded. The module has to be out of the reactor, not merely quiet.
-      - name: Install the codegen processor + plugin to the local repo
+      # Three traps, all hit for real before this line settled:
+      #
+      # -DskipTests is NOT sufficient. Maven collects a module's dependency graph regardless
+      # of whether its tests compile, so the kernel is still demanded and the build still
+      # 401s. The module has to leave the reactor, not merely go quiet.
+      #
+      # An allowlist (-pl exeris-processor,exeris-codegen-maven-plugin -am) is NOT sufficient
+      # either. It omits exeris-tooling-bom, which exeris-tooling-parent imports in
+      # dependencyManagement — and -am does not traverse BOM imports. The plugin then fails
+      # to resolve against a clean repo, which is what CI has and a dev machine usually is not.
+      #
+      # exeris-coverage-aggregate has to go too: it declares exeris-e2e-tests at provided
+      # scope to locate its jacoco.exec, so dropping e2e-tests alone leaves it unresolvable.
+      # It is a reporting module (packaging: pom) that produces nothing a consumer consumes.
+      #
+      # Tooling's own CI is what runs tooling's tests and publishes its coverage.
+      - name: Install the codegen chain to the local repo (kernel-free reactor)
         working-directory: exeris-tooling
-        run: mvn -B -ntp -DskipTests install -pl exeris-processor,exeris-codegen-maven-plugin -am
+        run: mvn -B -ntp -DskipTests install -pl '!exeris-e2e-tests,!exeris-coverage-aggregate'
 
       # Two passes, and the first one is not redundant. exeris:generate runs at
       # generate-sources, but the processor only writes capability metadata during
