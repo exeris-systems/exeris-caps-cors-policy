@@ -1,0 +1,29 @@
+{
+  "schemaVersion" : 2,
+  "stamp" : {
+    "validated" : true,
+    "compositionVersion" : "0.0.0",
+    "contentBinding" : "sha256:f0a676e4436cdce3df7d64acb8ae04e0dd4da28948a6364f57fb44d557924e04"
+  },
+  "modules" : [
+    {
+      "name" : "CorsPolicyModule",
+      "packageName" : "eu.exeris.caps.corspolicy",
+      "qualifiedName" : "eu.exeris.caps.corspolicy.CorsPolicyModule",
+      "module" : {
+        "provides" : [
+          {
+            "service" : "eu.exeris.caps.corspolicy.api.CorsPolicy",
+            "version" : "1.0.0"
+          }
+        ],
+        "requires" : [ ]
+      }
+    }
+  ],
+  "resolutions" : [ ],
+  "initOrder" : [
+    "eu.exeris.caps.corspolicy.CorsPolicyModule"
+  ],
+  "warnings" : [ ]
+}
