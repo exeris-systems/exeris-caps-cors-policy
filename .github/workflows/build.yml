@@ -142,3 +142,24 @@ jobs:
               f"module missing from manifest: {names}"
           print("manifest OK — validated stamp, sha256 binding, module present")
           PY
+
+      # "The manifest is valid" and "the manifest is the one in the repo" are different
+      # claims, and until now only the first was checked. `exeris:generate` writes into
+      # src/, not target/, and that file is committed — so a build whose output drifts from
+      # the committed copy leaves a repo where the declaration and the artefact a SKU
+      # consumes disagree, silently, with CI green.
+      #
+      # The gap is not theoretical: the codegen chain is driven by maven-compiler-plugin's
+      # annotationProcessorPaths, so a routine plugin bump is exactly the change that could
+      # move the emitted metadata with nothing on the pull request to notice it.
+      #
+      # CLAUDE.md and CONTRIBUTING.md both tell a contributor to check `git status` after a
+      # build. This is that instruction, enforced rather than requested.
+      - name: Assert the committed manifest matches what this build regenerated
+        working-directory: exeris-caps-cors-policy
+        run: |
+          if ! git diff --exit-code -- src/main/generated/; then
+            echo "::error::the committed cap-manifest.json does not match what this build produced — run the two-pass build locally and commit the regenerated file"
+            exit 1
+          fi
+          echo "committed manifest matches this build's output"

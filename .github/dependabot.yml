@@ -41,10 +41,17 @@ updates:
       # One PR for the routine github/actions bumps rather than four. Third-party actions
       # (claude-code-action) stay ungrouped: those are the ones worth reading a changelog for
       # before merging.
+      #
+      # Minors and patches only — see the note on the Maven group below. The first grouped PR
+      # this config produced carried `actions/checkout` v4 -> v7 and `actions/setup-java`
+      # v4 -> v6 together, which is four majors in one PR nobody has a reason to read closely.
       github-owned:
         patterns:
           - "actions/*"
           - "github/*"
+        update-types:
+          - minor
+          - patch
 
   - package-ecosystem: maven
     directory: /
@@ -61,9 +68,20 @@ updates:
       - dependency-name: "eu.exeris:*"
       - dependency-name: "eu.exeris.tooling:*"
     groups:
-      # JUnit and AssertJ move together often enough that two PRs a week is noise. The build
-      # plugins stay ungrouped — a compiler or surefire major is worth reading about.
+      # JUnit and AssertJ move together often enough that two PRs a week is noise — but that
+      # is an argument about patches and minors, and the group as originally written did not
+      # say so. Its first PR (#5) bundled a JUnit 5.11.4 -> 6.1.3 **major** with a one-line
+      # AssertJ security patch, so the change that most deserved a changelog read arrived in
+      # the PR least likely to get one, and it also duplicated the security update opened
+      # separately as #8.
+      #
+      # Restricting the group to minor and patch is what makes the stated rationale true:
+      # routine movement travels together, a major breaks out on its own and argues for
+      # itself. The build plugins stay ungrouped for the same reason.
       test-dependencies:
         patterns:
           - "org.junit.jupiter:*"
           - "org.assertj:*"
+        update-types:
+          - minor
+          - patch
