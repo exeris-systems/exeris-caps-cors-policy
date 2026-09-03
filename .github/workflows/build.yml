@@ -142,3 +142,33 @@ jobs:
               f"module missing from manifest: {names}"
           print("manifest OK — validated stamp, sha256 binding, module present")
           PY
+
+      # "The manifest is valid" and "the manifest is the one in the repo" are different
+      # claims, and until now only the first was checked. `exeris:generate` writes into
+      # src/, not target/, and that file is committed — so a build whose output drifts from
+      # the committed copy leaves a repo where the declaration and the artefact a SKU
+      # consumes disagree, silently, with CI green.
+      #
+      # The gap is not theoretical: the codegen chain is driven by maven-compiler-plugin's
+      # annotationProcessorPaths, so a routine plugin bump is exactly the change that could
+      # move the emitted metadata with nothing on the pull request to notice it.
+      #
+      # CLAUDE.md and CONTRIBUTING.md both tell a contributor to check `git status` after a
+      # build. This is that instruction, enforced rather than requested.
+      #
+      # `git status --porcelain`, not `git diff --exit-code`: a plain diff reports only
+      # tracked files, so a codegen version that starts emitting an ADDITIONAL file under
+      # src/main/generated/ would leave the working tree out of step with the repo and this
+      # gate would still pass. `--untracked-files=all` is what makes a new file inside an
+      # existing directory visible rather than collapsed into the directory name.
+      - name: Assert the committed manifest matches what this build regenerated
+        working-directory: exeris-caps-cors-policy
+        run: |
+          DRIFT=$(git status --porcelain --untracked-files=all -- src/main/generated/)
+          if [ -n "$DRIFT" ]; then
+            echo "$DRIFT"
+            git diff -- src/main/generated/ || true
+            echo "::error::src/main/generated/ does not match what this build produced — run the two-pass build locally and commit the result"
+            exit 1
+          fi
+          echo "committed generated tree matches this build's output"
