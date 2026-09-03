@@ -1,0 +1,69 @@
+version: 2
+
+# Two ecosystems, and the second one is a deliberate divergence from the sibling repos.
+#
+# GITHUB ACTIONS — same reasoning as exeris-tooling and exeris-kernel. Actions are pinned by
+# commit SHA (OpenSSF Scorecard "Pinned-Dependencies"), which makes them immune to a moved tag
+# but also invisible to a human reading the file: nothing about `@3d3c42e5…` says which version
+# it is, or that it is three majors behind. Dependabot rewrites the SHA and the trailing
+# `# vX.Y.Z` comment together, so the pin stays current without anyone auditing refs by hand.
+# Without it, SHA-pinning trades a supply-chain risk for a staleness one.
+#
+# Note this repo is currently mixed: `claude.yml` and `claude-code-review.yml` are SHA-pinned,
+# `build.yml` still uses floating `@v4` tags. Dependabot handles both, and converging build.yml
+# onto SHA pins is a separate change.
+#
+# MAVEN — enabled here, unlike in exeris-tooling and exeris-kernel. Those repos disable it
+# because a dependency bump has to travel the milestone path behind a full reactor and gates an
+# individual PR would not run (`exeris-tooling/.github/dependabot.yml`). That rationale does not
+# transfer: this repository is a single module whose entire gate is `mvn verify` on JDK 25 and
+# 26 plus the manifest assertion, and every pull request runs exactly that. A Dependabot PR here
+# is checked by the same thing a hand-written PR is checked by.
+#
+# The `eu.exeris:*` pins are the exception, and are ignored below. They do not resolve — CI
+# builds the SDK and the codegen chain from source at an immutable tag, precisely to keep a
+# GitHub Packages credential out of this build — and `build.yml` hardcodes those same tags in
+# its checkout steps. A bot PR moving `exeris.sdk.version` would therefore propose a version
+# nothing in the build produces, against upstreams that move by deliberate decision rather than
+# by release feed. What is left is what actually benefits: JUnit, AssertJ, and the Maven plugins.
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci(actions)"
+    labels:
+      - dependencies
+    groups:
+      # One PR for the routine github/actions bumps rather than four. Third-party actions
+      # (claude-code-action) stay ungrouped: those are the ones worth reading a changelog for
+      # before merging.
+      github-owned:
+        patterns:
+          - "actions/*"
+          - "github/*"
+
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "build(deps)"
+    labels:
+      - dependencies
+    ignore:
+      # Moved by decision, built from source at a tag `build.yml` also hardcodes. See above.
+      - dependency-name: "eu.exeris:*"
+      - dependency-name: "eu.exeris.tooling:*"
+    groups:
+      # JUnit and AssertJ move together often enough that two PRs a week is noise. The build
+      # plugins stay ungrouped — a compiler or surefire major is worth reading about.
+      test-dependencies:
+        patterns:
+          - "org.junit.jupiter:*"
+          - "org.assertj:*"
