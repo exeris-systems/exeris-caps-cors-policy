@@ -57,8 +57,8 @@ Requires **JDK 25+** and Maven 3.9+. `eu.exeris` artifacts are not on Maven Cent
 git clone -b v0.10.0 https://github.com/exeris-systems/exeris-sdk.git
 (cd exeris-sdk && mvn -DskipTests -Djapicmp.skip=true install)
 
-git clone https://github.com/exeris-systems/exeris-tooling.git
-(cd exeris-tooling && mvn -DskipTests install -pl exeris-processor,exeris-codegen-maven-plugin -am)
+git clone -b v0.7.0 https://github.com/exeris-systems/exeris-tooling.git
+(cd exeris-tooling && mvn -DskipTests install -pl exeris-tooling-bom,exeris-processor,exeris-codegen-maven-plugin -am)
 ```
 
 Then, **two passes on a fresh checkout**:
@@ -70,7 +70,11 @@ mvn verify                               # generate, validate the graph, scan th
 
 The first pass is not redundant. `exeris:generate` runs at `generate-sources`, but the processor only writes metadata during `compile`, so a first pass has nothing to read.
 
-> Scoping the tooling build to `exeris-processor,exeris-codegen-maven-plugin -am` is what keeps this credential-free. The full reactor includes `exeris-e2e-tests`, which declares the kernel at test scope; those artifacts live on GitHub Packages and would demand a token. Nothing in the processor or plugin chain references the kernel. Note `-DskipTests` would not be enough — Maven collects a module's dependency graph whether or not its tests compile, so the module has to be out of the reactor, not merely quiet.
+> Both upstream clones are pinned to an immutable tag, matching `exeris.sdk.version` and `exeris.tooling.version` in the POM. Tracking `main` does not work: tooling's `main` became `0.8.0-SNAPSHOT` the moment `v0.7.0` was cut, so it stopped producing the version this build asks for.
+>
+> Scoping the tooling reactor to that module list is what keeps this credential-free. The full reactor includes `exeris-e2e-tests`, which declares the kernel at test scope; those artifacts live on GitHub Packages and would demand a token. Nothing in the processor or plugin chain references the kernel. Note `-DskipTests` would not be enough — Maven collects a module's dependency graph whether or not its tests compile, so the module has to be out of the reactor, not merely quiet.
+>
+> `exeris-tooling-bom` has to be named explicitly. It is imported by `exeris-tooling-parent` inside `dependencyManagement`, and `-am` traverses parent and dependency edges but **not** BOM imports — so omitting it installs a plugin whose POM cannot be read back. That resolves fine on a developer machine with a warm `~/.m2` and fails on a clean one, which is what CI always has.
 
 ## What a successful build produces
 

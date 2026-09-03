@@ -1,0 +1,4 @@
+# Review is requested from the owner of every changed path, and branch protection can
+# require it before merge. Split by risk — not by directory — when co-maintainers arrive.
+
+* @arkstack-dev
