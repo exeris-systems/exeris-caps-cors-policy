@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout exeris-caps-cors-policy
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: exeris-caps-cors-policy
 
@@ -33,7 +33,7 @@ jobs:
       # is pinned to an immutable release tag rather than a moving branch: a moving ref
       # lets an unrelated upstream commit turn this build red.
       - name: Checkout exeris-sdk (v0.10.0 — matches exeris.sdk.version in the POM)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: exeris-systems/exeris-sdk
           ref: v0.10.0
@@ -45,7 +45,7 @@ jobs:
       # producing the version this POM asks for. An immutable ref also stops an unrelated
       # upstream commit from turning this build red.
       - name: Checkout exeris-tooling (v0.7.0 — matches exeris.tooling.version in the POM)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: exeris-systems/exeris-tooling
           ref: v0.7.0
