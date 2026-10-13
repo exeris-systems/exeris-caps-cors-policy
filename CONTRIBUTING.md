@@ -16,7 +16,7 @@ mvn verify                               # pass 2 — generate, validate, scan t
 ```
 
 Both passes are required after a `clean`; `README.md` explains why, and covers building the two
-upstreams from source (`eu.exeris` artefacts are not on Maven Central yet). `CLAUDE.md` carries the
+upstreams from source (`eu.exeris` artefacts are not on Maven Central yet). `AGENTS.md` carries the
 full set of invariants and the reasoning behind them — it is written for agent sessions but it is the
 most complete account, and worth reading before a non-trivial change.
 
@@ -89,7 +89,7 @@ applies here.
 - [ ] Tests added or updated in the right `@Nested` group; JUnit 5 + AssertJ only
 - [ ] Regenerated `cap-manifest.json` committed, if the declaration changed
 - [ ] Anything that widens what the policy allows is justified in the description
-- [ ] `README.md` / `CLAUDE.md` / `ROADMAP.md` updated if a documented claim changed
+- [ ] `README.md` / `AGENTS.md` / `ROADMAP.md` updated if a documented claim changed
 
 ## Security
 
