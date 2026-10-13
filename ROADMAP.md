@@ -1,3 +1,12 @@
+---
+title: "exeris-caps-cors-policy — Roadmap to implemented"
+type: roadmap
+visibility: public
+owning-repo: exeris-caps-cors-policy
+status: active
+last-verified: 2026-10-13
+---
+
 # exeris-caps-cors-policy — Roadmap to `implemented`
 
 This repository is the **first and, at the time of writing, only** `exeris-caps-*` repository. It

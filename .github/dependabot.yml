@@ -9,9 +9,8 @@ version: 2
 # `# vX.Y.Z` comment together, so the pin stays current without anyone auditing refs by hand.
 # Without it, SHA-pinning trades a supply-chain risk for a staleness one.
 #
-# Note this repo is currently mixed: `claude.yml` and `claude-code-review.yml` are SHA-pinned,
-# `build.yml` still uses floating `@v4` tags. Dependabot handles both, and converging build.yml
-# onto SHA pins is a separate change.
+# Note this repo is currently mixed: `claude.yml` is SHA-pinned, `build.yml` still uses floating
+# major tags. Dependabot handles both, and converging build.yml onto SHA pins is a separate change.
 #
 # MAVEN — enabled here, unlike in exeris-tooling and exeris-kernel. Those repos disable it
 # because a dependency bump has to travel the milestone path behind a full reactor and gates an
