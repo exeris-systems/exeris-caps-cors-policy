@@ -41,5 +41,5 @@ jobs:
             actions: read
 
           # No `prompt:` on purpose — this workflow answers whatever the @claude
-          # comment asked. The automatic review with its own prompt lives in
-          # claude-code-review.yml.
+          # comment asked. The review of every pull request is `docs-review` in
+          # guardrails.yml.
