@@ -21,7 +21,7 @@ Milestones are versions, not dates. Dates appear only on what has shipped.
 **Not on anyone's critical path, and that is the opportunity.** The API Gateway SKU is Track B
 H1 2027 (whitepaper §7), and its blocking caps are `gateway-core` / `policy-chain` /
 `route-registry` — all `specified`, none scaffolded. Nothing is waiting on this repo, so every
-breaking change costs zero today and costs a major tomorrow.
+breaking change costs zero today and costs every consumer a version bump tomorrow.
 
 **No consumer exists.** `policy-chain` and `gateway-core` are `specified`. Nothing validates the
 API shape end to end, which is the standing risk this roadmap manages by *not* freezing.
@@ -39,7 +39,7 @@ API shape end to end, which is the standing risk this roadmap manages by *not* f
 
 ## 0.1.0 — scaffold (shipped 2026-08-18)
 
-- [x] `@CapabilityModule` + `@Provides(CorsPolicy, "1.0.0")`, no `@Requires`, no `@CapabilityLifecycle`
+- [x] `@CapabilityModule` + `@Provides(CorsPolicy, "0.1.0")`, no `@Requires`, no `@CapabilityLifecycle`
 - [x] `api` / `internal` split under the load-bearing `eu.exeris.caps.corspolicy` root
 - [x] Zero runtime dependencies — annotations are `@Retention(SOURCE)` and taken at `provided`
 - [x] Both codegen goals bound (`generate` + `verify-capabilities`), two-pass build documented
@@ -112,13 +112,16 @@ instance; see [Companion work in `exeris-docs`](#companion-work-in-exeris-docs) 
   - the three-state outcome (below) and why a boolean was the wrong type
   - where construction lives, and how much of it is frozen surface
   - whether per-route selection belongs in the request, the service, or the consumer
-  - **the rule that keeps `@Provides(version)` at `1.0.0` across this reshape.** A service version
-    accrues no semver obligation until something can resolve *and* construct it. `CorsPolicy@1.0.0`
-    was a scaffold: no published artefact, no consumer, and no public path to an instance — so it
-    was never obtainable, and there is nothing for a major bump to protect. The reshape lands
-    *inside* `1.0.0`. The ADR states this as a rule the next 53 caps inherit rather than a one-off
-    dispensation, and **names its own expiry**: it stops applying the moment 0.4.0 publishes a
-    resolvable artefact. Without that clause the rule is a loophole rather than a policy
+  - **the rule that keeps `@Provides(version)` at `0.1.0` across this reshape.** A pre-release
+    capability declares its service contracts at `0.1.0`, never at `1.0.0` or higher, and a
+    consumer takes the range `[0.1.0,0.2.0)`. Before the first release a breaking change does not
+    bump the version: `CorsPolicy@0.1.0` is a scaffold with no published artefact, no consumer and
+    no public path to an instance, so there is nobody for a bump to protect, and the reshape lands
+    *inside* `0.1.0`. The ADR states this as a rule the next 53 caps inherit rather than a one-off
+    dispensation, and **names its own expiry**: the first resolvable published artefact (0.4.0
+    here). From then on the contract follows 0.x semver — minor for a breaking change, patch for an
+    additive one — and `1.0.0` is the release gate below, decided per cap, never a starting point.
+    Without the expiry clause the rule is a loophole rather than a policy
 - [ ] **Three-state outcome.** `CorsOutcome { NOT_APPLICABLE, ALLOWED, DENIED }` becomes a
       `CorsDecision` component; `allowed()` survives as a derived accessor. Today `allowed() == false`
       means both "no `Origin` header, CORS does not apply" and "origin rejected" — and the javadoc,
@@ -287,7 +290,8 @@ What 1.0.0 then costs, listed so it is not a surprise:
   previous release as its baseline, and there is no published artefact until 0.4.0. The gate becomes
   possible at the *release after* the first release, not at the first one — the same sequencing the
   SDK hit and deferred.
-- **`@Provides(version)` frozen** — the service version stops moving without a major.
+- **`@Provides(version)` leaves 0.x** — the service contract moves to `1.0.0`, and from then on a
+  breaking change costs a major.
 - **Source and javadoc jars**, and whatever Maven Central requires if the community caps' "formal
   Apache 2.0 releases" (whitepaper §7, 2028 horizon) go to Central rather than GitHub Packages.
 

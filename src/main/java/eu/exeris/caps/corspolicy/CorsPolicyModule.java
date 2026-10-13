@@ -45,7 +45,7 @@ import eu.exeris.sdk.annotation.capability.Provides;
  * @since 0.1.0
  */
 @CapabilityModule
-@Provides(service = CorsPolicy.class, version = "1.0.0")
+@Provides(service = CorsPolicy.class, version = "0.1.0")
 public final class CorsPolicyModule {
 
     private CorsPolicyModule() {
