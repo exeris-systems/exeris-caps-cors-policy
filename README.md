@@ -33,7 +33,7 @@ The payoff is concrete: this cap needs no kernel SPI, and its jar has **zero run
 
 ```java
 @CapabilityModule
-@Provides(service = CorsPolicy.class, version = "1.0.0")
+@Provides(service = CorsPolicy.class, version = "0.1.0")
 public final class CorsPolicyModule { }
 ```
 

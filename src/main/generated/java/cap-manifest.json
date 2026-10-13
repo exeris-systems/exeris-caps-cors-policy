@@ -3,7 +3,7 @@
   "stamp" : {
     "validated" : true,
     "compositionVersion" : "0.0.0",
-    "contentBinding" : "sha256:f0a676e4436cdce3df7d64acb8ae04e0dd4da28948a6364f57fb44d557924e04"
+    "contentBinding" : "sha256:19dd94444144a433f43e76ad574e3f48baa0cbba7d118f8a77b3073c585b0dac"
   },
   "modules" : [
     {
@@ -14,7 +14,7 @@
         "provides" : [
           {
             "service" : "eu.exeris.caps.corspolicy.api.CorsPolicy",
-            "version" : "1.0.0"
+            "version" : "0.1.0"
           }
         ],
         "requires" : [ ]
