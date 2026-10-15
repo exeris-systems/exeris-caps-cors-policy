@@ -15,8 +15,8 @@ mvn compile -Dexeris.codegen.skip=true   # pass 1 — seed the capability metada
 mvn verify                               # pass 2 — generate, validate, scan the Wall
 ```
 
-Both passes are required after a `clean`; `README.md` explains why, and covers building the two
-upstreams from source (`eu.exeris` artefacts are not on Maven Central yet). `AGENTS.md` carries the
+Both passes are required after a `clean`; `README.md` explains why. `exeris-sdk` and `exeris-tooling` resolve from
+Maven Central. `AGENTS.md` carries the
 full set of invariants and the reasoning behind them — it is written for agent sessions but it is the
 most complete account, and worth reading before a non-trivial change.
 
@@ -38,9 +38,9 @@ Requires **JDK 25** and Maven 3.9+. CI builds JDK 25 and 26; both rows must be g
   check — regeneration is byte-stable, so a dirty one means declaration and manifest disagree.
 - **The JDK baseline.** `maven.compiler.release` stays 25 and no preview flag appears anywhere
   (kernel ADR-066, SDK ADR-069).
-- **A credential-free build.** The tooling reactor in `.github/workflows/build.yml` is an allowlist
-  that deliberately keeps the kernel — and therefore a GitHub Packages token — out of the build.
-  Nothing in a pull-request workflow may require a secret.
+- **A credential-free build.** The capability declares no kernel dependency, and `exeris-sdk` and
+  `exeris-tooling` resolve from Maven Central, so the build needs no GitHub Packages token. Nothing
+  in a pull-request workflow may require a secret.
 
 ## Tests
 

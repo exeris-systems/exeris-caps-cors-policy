@@ -4,7 +4,7 @@ type: reference
 visibility: public
 owning-repo: exeris-caps-cors-policy
 status: active
-last-verified: 2026-10-13
+last-verified: 2026-10-15
 ---
 
 # Review rules for `exeris-caps-cors-policy`
@@ -79,9 +79,9 @@ S5. **The jar has zero runtime dependencies.** Every Exeris annotation is `@Rete
     `annotationProcessorPaths`. A new `compile`-scope dependency, a kernel, Spring, servlet or
     transport type, a logging implementation (use `System.Logger`, ADR-060), or code that reads an
     Exeris annotation at runtime (reflection over `SOURCE` retention never works) → `[HARD BLOCK]`.
-    The build stays credential-free: the upstream tooling reactor is an allowlist that keeps the
-    kernel, and so a GitHub Packages token, out of it; a workflow or POM change that needs a token
-    to build → `[CONTRACT]`.
+    The build stays credential-free: the capability declares no kernel dependency and its upstreams
+    resolve from Maven Central, so no GitHub Packages token is needed; a workflow or POM change that
+    needs a token to build → `[CONTRACT]`.
 
 S6. **The build baseline and the test contract hold** (`AGENTS.md` §2, `CONTRIBUTING.md`).
     `maven.compiler.release` stays 25 and no `--enable-preview` appears in any scope →

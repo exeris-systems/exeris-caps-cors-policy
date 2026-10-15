@@ -19,12 +19,10 @@ version: 2
 # 26 plus the manifest assertion, and every pull request runs exactly that. A Dependabot PR here
 # is checked by the same thing a hand-written PR is checked by.
 #
-# The `eu.exeris:*` pins are the exception, and are ignored below. They do not resolve — CI
-# builds the SDK and the codegen chain from source at an immutable tag, precisely to keep a
-# GitHub Packages credential out of this build — and `build.yml` hardcodes those same tags in
-# its checkout steps. A bot PR moving `exeris.sdk.version` would therefore propose a version
-# nothing in the build produces, against upstreams that move by deliberate decision rather than
-# by release feed. What is left is what actually benefits: JUnit, AssertJ, and the Maven plugins.
+# The `eu.exeris:*` pins are the exception, and are ignored below. The SDK and the codegen chain
+# are one coordinated set that moves by a deliberate change to the POM, so a bot PR moving
+# `exeris.sdk.version` alone would propose a combination nobody validated. What is left is what
+# actually benefits: JUnit, AssertJ, and the Maven plugins.
 updates:
   - package-ecosystem: github-actions
     directory: /
@@ -63,9 +61,8 @@ updates:
     labels:
       - dependencies
     ignore:
-      # Moved by decision, built from source at a tag `build.yml` also hardcodes. See above.
+      # Moved by decision, as one set. See above.
       - dependency-name: "eu.exeris:*"
-      - dependency-name: "eu.exeris.tooling:*"
     groups:
       # JUnit and AssertJ move together often enough that two PRs a week is noise — but that
       # is an argument about patches and minors, and the group as originally written did not

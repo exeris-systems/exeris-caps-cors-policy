@@ -53,7 +53,7 @@ API shape end to end, which is the standing risk this roadmap manages by *not* f
 - [x] Zero runtime dependencies — annotations are `@Retention(SOURCE)` and taken at `provided`
 - [x] Both codegen goals bound (`generate` + `verify-capabilities`), two-pass build documented
 - [x] `cap-manifest.json` committed, with a validated stamp and a SHA-256 content binding
-- [x] CI green on JDK 25 and 26, credential-free (allowlisted tooling reactor incl. `exeris-tooling-bom`)
+- [x] CI green on JDK 25 and 26, credential-free (`exeris-sdk` and `exeris-tooling` resolve from Maven Central)
 - [x] 15 tests across 5 `@Nested` groups; JUnit 5 + AssertJ only (ADR-058 dependency contract)
 - [x] Apache-2.0 per ADR-023 — `LICENSE`, POM `<licenses>`, README claim in step
 
@@ -89,8 +89,8 @@ file.
       disable Maven because a bump there has to travel a milestone path behind gates an individual PR
       would not run; this repo's entire gate is `mvn verify` on two JDK rows plus the manifest
       assertion, and every PR already runs exactly that. The `eu.exeris` pins stay ignored because
-      they are built from source at a tag `build.yml` also hardcodes — a bot PR would propose a
-      version the build cannot produce
+      the SDK and the codegen chain move together by a deliberate change to the POM — a bot PR
+      would propose a combination nobody validated
 
 ---
 
@@ -163,9 +163,8 @@ instance; see [Companion work in `exeris-docs`](#companion-work-in-exeris-docs) 
       callable" in both ADR-024 line 77 and the author guide's Wall table, and would have licensed a
       stricter future implementation. Amendment lands in `exeris-tooling` (which owns ADR-055), with
       the guide corrected in lockstep.
-- [ ] **SDK pin `0.10.0` → `0.11.0`** (released 2026-08-26). POM property and the CI checkout ref,
-      moved together and to the **tag**, never to a branch. Tooling stays on `0.7.0`: `main` is
-      `0.8.0-SNAPSHOT` and no `v0.8.0` tag exists, so there is nothing to pin to yet.
+- [x] **SDK `0.12.0` and tooling `0.10.0`**, both release versions resolved from Maven Central;
+      CI builds neither from source.
 - [ ] **Manifest regenerated** and committed, with the two-pass build. A declaration change carrying
       a stale `cap-manifest.json` is a blocker by this repo's own review contract.
 
