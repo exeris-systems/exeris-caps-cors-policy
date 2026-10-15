@@ -4,7 +4,7 @@ type: roadmap
 visibility: public
 owning-repo: exeris-caps-cors-policy
 status: active
-last-verified: 2026-10-13
+last-verified: 2026-10-15
 ---
 
 # exeris-caps-cors-policy — Roadmap to `implemented`

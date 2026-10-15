@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
  * configuration record behind the builder stays private to this cap: the builder is the
  * surface, the record is an implementation detail.
  *
- * <pre>{@code
+ * {@snippet :
  * CorsPolicy policy = CorsPolicies.builder()
  *         .allowOrigin("https://app.example.com")
  *         .methods(List.of("GET", "POST", "DELETE"))
@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
  *         .allowCredentials(true)
  *         .maxAge(Duration.ofMinutes(10))
  *         .build();
- * }</pre>
+ * }
  *
  * <h2>Contract</h2>
  * <ul>

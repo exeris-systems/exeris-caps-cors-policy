@@ -92,17 +92,22 @@ class CorsPolicyAllocationTest {
 
     private static void assertZero(String what, CorsPolicy policy, CorsRequest[] requests, boolean expectAllowed)
             throws InterruptedException {
-        long[] sink = new long[1];
+        long[] allowedCount = new long[1];
+        CorsDecision[] last = new CorsDecision[1];
         long bytes = measureOnVirtualThread(iterations -> {
             long allowed = 0;
             for (int i = 0; i < iterations; i++) {
-                if (policy.evaluate(requests[i % requests.length]).allowed()) {
+                CorsDecision d = policy.evaluate(requests[i % requests.length]);
+                // Stored, so the decision escapes: a decision built per request cannot be
+                // scalar-replaced away by the JIT and so cannot hide from the measurement.
+                last[0] = d;
+                if (d.allowed()) {
                     allowed++;
                 }
             }
-            sink[0] = allowed;
+            allowedCount[0] = allowed;
         });
-        assertThat(sink[0] > 0).as("workload ran and decisions were %s", expectAllowed ? "allowed" : "denied")
+        assertThat(allowedCount[0] > 0).as("workload ran and decisions were %s", expectAllowed ? "allowed" : "denied")
                 .isEqualTo(expectAllowed);
         assertNoPerRequestAllocation(what, bytes);
     }
@@ -171,18 +176,21 @@ class CorsPolicyAllocationTest {
         CorsPolicy allocating = request -> new CorsDecision(
                 true, request.origin(), List.of("GET"), List.of(), null, false);
         CorsRequest[] requests = {CorsRequest.simple(APP, "GET")};
-        long[] sink = new long[1];
+        long[] allowedCount = new long[1];
+        CorsDecision[] last = new CorsDecision[1];
         long bytes = measureOnVirtualThread(iterations -> {
             long allowed = 0;
             for (int i = 0; i < iterations; i++) {
-                if (allocating.evaluate(requests[0]).allowed()) {
+                CorsDecision d = allocating.evaluate(requests[0]);
+                last[0] = d;
+                if (d.allowed()) {
                     allowed++;
                 }
             }
-            sink[0] = allowed;
+            allowedCount[0] = allowed;
         });
 
-        assertThat(sink[0]).isPositive();
+        assertThat(allowedCount[0]).isPositive();
         assertThatThrownBy(() -> assertNoPerRequestAllocation("control policy", bytes))
                 .isInstanceOf(AssertionError.class);
     }
