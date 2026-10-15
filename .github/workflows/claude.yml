@@ -41,5 +41,5 @@ jobs:
             actions: read
 
           # No `prompt:` on purpose — this workflow answers whatever the @claude
-          # comment asked. The review of every pull request is `docs-review` in
+          # comment asked. The review of every pull request is `review` in
           # guardrails.yml.
