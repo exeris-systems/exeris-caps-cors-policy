@@ -11,13 +11,40 @@ Cross-origin request policy as an Exeris capability.
 Provides one service, `CorsPolicy`: a pure decision function over an origin, a method, and (for a preflight) the headers a client declared.
 
 ```java
-CorsPolicy policy = /* provided by the composition */;
+CorsPolicy policy = CorsPolicies.builder()
+        .allowOrigin("https://app.example.com")
+        .methods(List.of("GET", "POST"))
+        .build();
 
 CorsDecision d = policy.evaluate(CorsRequest.simple("https://app.example.com", "GET"));
 if (d.allowed()) {
     d.headers().forEach(response::setHeader);
 }
 ```
+
+## Constructing a policy
+
+`CorsPolicies.builder()` is the only way to obtain a `CorsPolicy` from outside this jar, and it is part of the cross-cap surface. A consumer never names a type from `internal`.
+
+```java
+CorsPolicy policy = CorsPolicies.builder()
+        .allowOrigins(List.of("https://app.example.com", "https://admin.example.com"))
+        .methods(List.of("GET", "POST", "DELETE"))   // replaces the default GET, HEAD, POST
+        .headers(List.of("Content-Type", "Authorization"))   // replaces the default: none
+        .allowCredentials(true)
+        .maxAge(Duration.ofMinutes(10))
+        .build();
+```
+
+The configuration is validated, and a configuration that cannot be honoured does not build:
+
+- **Nothing is allowed by default.** With no origin, `build()` throws `IllegalStateException`; there is no wildcard default. The wildcard is served only when written: `allowAnyOrigin()`, or `"*"` passed to `allowOrigin` / `allowOrigins`.
+- **Wildcard plus credentials is refused** at `build()`, and so is a wildcard next to explicit origins.
+- **Origins are `scheme://host[:port]`.** A path, a trailing slash, user information, a `*` inside the origin and the literal `null` origin are refused, because each either never matches or grants more than it says. Matching is exact and case-sensitive.
+- **Methods and header names must be HTTP tokens**, and `*` is not accepted for either. Defaults are `GET`, `HEAD`, `POST`, no request headers, no credentials, ten minutes of preflight cache.
+- An invalid value throws `IllegalArgumentException` from its setter; an invalid combination throws `IllegalStateException` from `build()`. A built policy never throws to deny.
+
+A built policy is immutable and thread-safe, and `evaluate` allocates nothing per request: every decision it can return is built once, at construction. `CorsPolicyAllocationTest` measures this on virtual threads, with a control that must fail.
 
 ## What it deliberately does not do
 
@@ -44,7 +71,7 @@ No `@Requires` — this cap depends on nothing, and a speculative empty edge wou
 | Package | Visibility |
 |---|---|
 | `eu.exeris.caps.corspolicy` | the `@CapabilityModule` declaration |
-| `eu.exeris.caps.corspolicy.api` | **visible to other caps** — `CorsPolicy`, `CorsRequest`, `CorsDecision` |
+| `eu.exeris.caps.corspolicy.api` | **visible to other caps** — `CorsPolicy`, `CorsPolicies`, `CorsRequest`, `CorsDecision` |
 | `eu.exeris.caps.corspolicy.internal` | **private** — a sibling cap reaching in fails the build |
 
 The package root is load-bearing, not tidiness: `CapTierWall` derives the set of cap names a build owns from the segment after `eu.exeris.caps.`, and that set is what licenses the build to read its own `internal` packages.
