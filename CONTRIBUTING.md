@@ -38,9 +38,9 @@ Requires **JDK 25** and Maven 3.9+. CI builds JDK 25 and 26; both rows must be g
   check — regeneration is byte-stable, so a dirty one means declaration and manifest disagree.
 - **The JDK baseline.** `maven.compiler.release` stays 25 and no preview flag appears anywhere
   (kernel ADR-066, SDK ADR-069).
-- **A credential-free build.** The tooling reactor in `.github/workflows/build.yml` is an allowlist
-  that deliberately keeps the kernel — and therefore a GitHub Packages token — out of the build.
-  Nothing in a pull-request workflow may require a secret.
+- **A credential-free build.** The capability declares no kernel dependency, and `exeris-sdk` and
+  `exeris-tooling` resolve from Maven Central, so the build needs no GitHub Packages token. Nothing
+  in a pull-request workflow may require a secret.
 
 ## Tests
 

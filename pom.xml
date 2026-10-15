@@ -44,8 +44,8 @@
         <exeris.sdk.version>0.12.0</exeris.sdk.version>
         <!-- Pinned to a release tag rather than a SNAPSHOT: tooling's main moves to the next
              SNAPSHOT the moment a tag is cut, so a main-tracking build stops producing the
-             version this property asks for. CI builds it from that tag, so the build needs no
-             package-registry credential. -->
+             version this property asks for. The release resolves from Maven Central, so the
+             build needs no package-registry credential. -->
         <exeris.tooling.version>0.10.0</exeris.tooling.version>
 
         <junit.version>6.1.3</junit.version>
