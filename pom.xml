@@ -41,7 +41,7 @@
              preview-clean baseline exists to avoid. -->
         <maven.compiler.release>25</maven.compiler.release>
 
-        <exeris.sdk.version>0.10.0</exeris.sdk.version>
+        <exeris.sdk.version>0.12.0</exeris.sdk.version>
         <!-- Pinned to a release tag rather than a SNAPSHOT: tooling's main moves to the next
              SNAPSHOT the moment a tag is cut, so a main-tracking build stops producing the
              version this property asks for. CI builds it from that tag, so the build needs no
