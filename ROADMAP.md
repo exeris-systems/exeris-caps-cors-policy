@@ -89,8 +89,8 @@ file.
       disable Maven because a bump there has to travel a milestone path behind gates an individual PR
       would not run; this repo's entire gate is `mvn verify` on two JDK rows plus the manifest
       assertion, and every PR already runs exactly that. The `eu.exeris` pins stay ignored because
-      they are built from source at a tag `build.yml` also hardcodes — a bot PR would propose a
-      version the build cannot produce
+      the SDK and the codegen chain move together by a deliberate change to the POM — a bot PR
+      would propose a combination nobody validated
 
 ---
 

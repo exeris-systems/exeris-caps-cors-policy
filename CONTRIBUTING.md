@@ -15,8 +15,8 @@ mvn compile -Dexeris.codegen.skip=true   # pass 1 — seed the capability metada
 mvn verify                               # pass 2 — generate, validate, scan the Wall
 ```
 
-Both passes are required after a `clean`; `README.md` explains why, and covers building the two
-upstreams from source (`eu.exeris` artefacts are not on Maven Central yet). `AGENTS.md` carries the
+Both passes are required after a `clean`; `README.md` explains why. `exeris-sdk` and `exeris-tooling` resolve from
+Maven Central. `AGENTS.md` carries the
 full set of invariants and the reasoning behind them — it is written for agent sessions but it is the
 most complete account, and worth reading before a non-trivial change.
 

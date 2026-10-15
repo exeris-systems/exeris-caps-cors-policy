@@ -48,10 +48,8 @@ Licence: Apache-2.0, one of the three `community` caps under ADR-023.
   CI builds 25 and 26; both rows stay green.
 - **Tests (ADR-058).** JUnit 5 and AssertJ only, no mocking framework. New behaviour in
   `DefaultCorsPolicy` goes in the matching `@Nested` group of `DefaultCorsPolicyTest`.
-- **A credential-free build.** The upstream tooling reactor is an allowlist that keeps the kernel, and
-  so a GitHub Packages token, out of the build: the full reactor pulls in `exeris-e2e-tests`, which
-  declares the kernel at test scope, and `-DskipTests` does not drop it. `exeris-tooling-bom` is named
-  because `-am` does not follow BOM imports.
+- **A credential-free build.** This cap declares no kernel dependency, and `exeris-sdk` and
+  `exeris-tooling` resolve from Maven Central, so the build needs no GitHub Packages token.
 - **Licence.** Apache-2.0 is an ADR-023 classification: `LICENSE`, the POM `<licenses>` block and
   the README claim move together.
 - **Language.** Code, identifiers, comments, commit messages, pull-request bodies and documentation
@@ -105,8 +103,8 @@ This repository authors no profiles, skills, workflows or hooks of its own.
 
 ## 5. Verification and reporting
 
-exeris-sdk `v0.10.0` and exeris-tooling `v0.10.0` are built from their tags first, as `README.md`
-gives it; the tooling module list is an allowlist, `exeris-tooling-bom` included.
+exeris-sdk 0.12.0 and exeris-tooling 0.10.0 resolve from Maven Central; nothing is built from
+source first.
 
 ```bash
 mvn compile -Dexeris.codegen.skip=true   # pass 1 — seed capability metadata
