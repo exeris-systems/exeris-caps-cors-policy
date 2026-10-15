@@ -136,11 +136,15 @@ instance; see [Companion work in `exeris-docs`](#companion-work-in-exeris-docs) 
       means both "no `Origin` header, CORS does not apply" and "origin rejected" — and the javadoc,
       the README and a test all warn the consumer not to turn the first into a 403. A warning
       repeated in three places is a missing type.
-- [ ] **A public construction path.** `CorsPolicies` in `api` — a builder that returns a
+- [x] **A public construction path.** `CorsPolicies` in `api` — a builder that returns a
       `CorsPolicy`. `CorsPolicySettings` **stays in `internal`**: the builder is the frozen surface,
-      the settings record is an implementation detail. Today nothing outside this jar can obtain a
-      `CorsPolicy` at all, which is the single largest reason the cap is unusable rather than merely
-      incomplete.
+      the settings record is an implementation detail. Before this, nothing outside the jar could
+      obtain a `CorsPolicy` at all, which was the single largest reason the cap was unusable rather
+      than merely incomplete. The builder validates what it is given: no origin means no policy
+      (there is no wildcard default), a wildcard is served only when written, a wildcard with
+      credentials or with explicit origins is refused, and origins, methods and header names are
+      checked for the shapes that would never match. Evaluating a built policy allocates nothing per
+      request. Ships in the 0.1.0 contract: no consumer could call the earlier shape.
 - [ ] **Named profiles.** `CorsPolicyRegistry` in `api`, resolving a profile name to a `CorsPolicy`,
       with a default profile. Added as a **second** `@Provides` (the annotation is repeatable), so a
       single-policy consumer still takes `CorsPolicy` and a gateway takes the registry. Route→profile
