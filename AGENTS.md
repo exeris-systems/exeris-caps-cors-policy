@@ -105,7 +105,7 @@ This repository authors no profiles, skills, workflows or hooks of its own.
 
 ## 5. Verification and reporting
 
-exeris-sdk `v0.10.0` and exeris-tooling `v0.7.0` are built from their tags first, as `README.md`
+exeris-sdk `v0.10.0` and exeris-tooling `v0.10.0` are built from their tags first, as `README.md`
 gives it; the tooling module list is an allowlist, `exeris-tooling-bom` included.
 
 ```bash
