@@ -111,6 +111,30 @@ class DefaultCorsPolicyTest {
         }
 
         @Test
+        @DisplayName("folds only ASCII when matching a method, so a look-alike character never matches")
+        void methodFoldIsAsciiOnly() {
+            // A dotless i upper-cases to "I" and a long s to "S" under a full Unicode
+            // conversion; neither may turn a different string into GET, PUT or OPTIONS.
+            var policy = new DefaultCorsPolicy(new CorsPolicySettings(
+                    Set.of(APP), Set.of("OPTIONS", "PUT"), Set.of(), null, false));
+
+            assertThat(policy.evaluate(CorsRequest.simple(APP, "options")).allowed()).isTrue();
+            assertThat(policy.evaluate(CorsRequest.simple(APP, "opt\u0131ons")).allowed()).isFalse();
+            assertThat(policy.evaluate(CorsRequest.simple(APP, "PUT ")).allowed()).isFalse();
+        }
+
+        @Test
+        @DisplayName("folds only ASCII when matching a header name, so a dotless i does not match I")
+        void headerFoldIsAsciiOnly() {
+            var policy = new DefaultCorsPolicy(new CorsPolicySettings(
+                    Set.of(APP), Set.of("GET"), Set.of("If-Match"), null, false));
+
+            assertThat(policy.evaluate(CorsRequest.preflight(APP, "GET", List.of("IF-MATCH"))).allowed()).isTrue();
+            assertThat(policy.evaluate(CorsRequest.preflight(APP, "GET", List.of("\u0131f-match"))).allowed())
+                    .isFalse();
+        }
+
+        @Test
         @DisplayName("denies a preflight declaring an unconfigured header")
         void deniesUnknownHeader() {
             CorsDecision d = credentialed(APP).evaluate(

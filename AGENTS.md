@@ -4,7 +4,7 @@ type: reference
 visibility: public
 owning-repo: exeris-caps-cors-policy
 status: active
-last-verified: 2026-10-13
+last-verified: 2026-10-15
 ---
 
 # exeris-caps-cors-policy
@@ -66,6 +66,10 @@ explicit justification.
 
 - **Fail closed.** An unmatched origin, method or requested header denies, and a denial is a return
   value, never an exception.
+- **`evaluate` allocates nothing per request.** Every decision a policy can return is built at
+  construction; `CorsPolicyAllocationTest` fails a change that allocates on the evaluation path.
+- **No origin, no policy.** `CorsPolicies.builder()` has no wildcard default; `*` is served only when
+  written.
 - **Wildcard with credentials is rejected at construction.** Browsers refuse
   `Access-Control-Allow-Origin: *` on a credentialed response.
 - **`Vary: Origin` accompanies every origin-dependent response**, or a shared cache serves one origin's
