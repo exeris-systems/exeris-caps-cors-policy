@@ -107,7 +107,7 @@ This repository authors no profiles, skills, workflows or hooks of its own.
 
 ## 5. Verification and reporting
 
-exeris-sdk 0.12.0 and exeris-tooling 0.10.0 resolve from Maven Central; nothing is built from
+exeris-sdk 0.13.3 and exeris-tooling 0.11.0 resolve from Maven Central; nothing is built from
 source first.
 
 ```bash

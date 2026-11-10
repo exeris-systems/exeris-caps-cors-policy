@@ -78,7 +78,7 @@ The package root is load-bearing, not tidiness: `CapTierWall` derives the set of
 
 ## Building
 
-Requires **JDK 25+** and Maven 3.9+. `exeris-sdk` 0.12.0 and `exeris-tooling` 0.10.0 resolve from Maven Central, so nothing is built from source first.
+Requires **JDK 25+** and Maven 3.9+. `exeris-sdk` 0.13.3 and `exeris-tooling` 0.11.0 resolve from Maven Central, so nothing is built from source first.
 
 Then, **two passes on a fresh checkout**:
 
