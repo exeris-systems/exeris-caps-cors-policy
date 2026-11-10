@@ -163,7 +163,7 @@ instance; see [Companion work in `exeris-docs`](#companion-work-in-exeris-docs) 
       callable" in both ADR-024 line 77 and the author guide's Wall table, and would have licensed a
       stricter future implementation. Amendment lands in `exeris-tooling` (which owns ADR-055), with
       the guide corrected in lockstep.
-- [x] **SDK `0.12.0` and tooling `0.10.0`**, both release versions resolved from Maven Central;
+- [x] **SDK `0.13.3` and tooling `0.11.0`**, both release versions resolved from Maven Central;
       CI builds neither from source.
 - [ ] **Manifest regenerated** and committed, with the two-pass build. A declaration change carrying
       a stale `cap-manifest.json` is a blocker by this repo's own review contract.
